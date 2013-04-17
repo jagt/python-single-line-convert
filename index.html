@@ -1,0 +1,188 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="content-type" content="text/html;charset=utf-8"/>
+	<title>Python Single Line Converter</title>
+	<style type="text/css">
+body{
+    font-family: Tahoma, Verdana, Segoe, sans-serif;
+    color: #444444;
+    line-height: 1;
+    width: 95%;
+}
+h1, h2, h3, h4 {
+	font-family: Palatino, "Palatino Linotype", "Palatino LT STD", "Book Antiqua", Georgia, serif;
+    color: #111111;
+    font-weight: 400;
+}
+h1, h2, h3, h4, h5 {
+    margin-bottom: 24px;
+    font-weight: bold;
+    padding: 0;
+}
+h1 {
+    font-size: 48px;
+}
+h2 {
+    font-size: 36px;
+    margin: 24px 0 6px;
+}
+h3 {
+    font-size: 24px;
+}
+h4 {
+    font-size: 21px;
+}
+h5 {
+    font-size: 18px;
+}
+a {
+    color: #0099ff;
+    margin: 0;
+    padding: 0;
+    vertical-align: baseline;
+}
+ul, ol {
+    padding: 0;
+    margin: 0;
+}
+li {
+    line-height: 24px;
+}
+li ul, li ul {
+	margin-left: 24px;
+}
+p, ul, ol {
+    font-size: 16px;
+    line-height: 24px;
+    max-width: 540px;
+}
+pre {
+    padding: 0px 24px;
+    max-width: 800px;
+    white-space: pre-wrap;
+}
+code {
+    font-family: Consolas, Monaco, Andale Mono, monospace;
+    line-height: 1.5;
+    font-size: 13px;
+}
+aside {
+    display: block;
+    float: right;
+    width: 390px;
+}
+blockquote {
+    margin: 1em 2em;
+    max-width: 476px;
+}
+blockquote p {
+    color: #666;
+    max-width: 460px;
+}
+hr {
+    width: 540px;
+    text-align: left;
+    margin: 0 auto 0 0;
+    color: #999;
+}
+
+/* layouts */
+#wrapper {
+    margin: 4em auto 4em;
+    width: 70%;
+}
+</style>
+	<script type="text/javascript">
+	// trim polyfill from somewhere on the internet
+	if(!String.prototype.trimLeft){
+		String.prototype.trimLeft = function() {
+			return this.replace(/^[\s|　]+/g, "");
+		};
+		String.prototype.trimRight = function() {
+			return this.replace(/[\s|　]+$/g, "");
+		};
+		String.prototype.trim = function() {
+			return this.trimLeft().trimRight();
+		};
+	}
+	window.onload = function(){
+		function convert_to_single_line(code, option) {
+			var ix;
+			option = option || {};
+			var lines = code.trimRight() // keep left indent
+							.replace(/"""/g, '\\"\\"\\"') // escape """
+							.replace(/\\$/g, '') // remove trailing \
+							.split('\n');
+			var first_indent;
+			for (ix = 0; ix < lines.length; ++ix) {
+				if (first_indent === undefined) {
+					first_indent = lines[ix].match(/^\s*/);
+					console.log(first_indent);
+				}
+				lines[ix] = lines[ix].trimRight();
+				if (option.reindent) {
+					lines[ix] = lines[ix].replace(new RegExp('^'+first_indent), '');
+				}
+			}
+			lines.unshift('"""');
+			lines.push('"""');
+			return 'exec'+(option.is_python3 ? '(' : ' ')+lines.join('\\n')+(option.is_python3 ? ')' : '');
+		}
+		document.getElementById('convert').onclick = function(e) {
+			var option = {};
+			option.is_python3 = document.getElementById('pyver3').checked;
+			option.reindent = document.getElementById('pyreindent').checked;
+			var codearea = document.getElementById('codearea');
+			codearea.value = convert_to_single_line(codearea.value, option);
+			return false;
+		};
+	};
+	</script>
+</head>
+<body>
+	<div id="wrapper">
+		<h1>Python Single Line Converter</h1>
+		<p>
+			Convert multiple line Python code to a single line in a dead simple way.<br/>
+			Paste your code below and hit Convert
+		</p>
+		<div>
+		<input type="radio" name="pyver" id="pyver2" value="Python 2" checked="checked" /> Python 2
+		<input type="radio" name="pyver" id="pyver3" value="Python 3" /> Python 3
+		<input type="checkbox" name="pyreindent" id="pyreindent" checked="checked"> Reindent based on first line's indent
+		<br/><br/>
+		<textarea id="codearea" cols="120" rows="30">
+        # 'Reindent based on first line's indent' will reindent -8 spaces in this case
+        # comments are still kept at this moment
+        from datetime import datetime
+        def foo():
+            """triple double quotes are escaped"""
+            return '"Hey kid what time is it?"'
+        print foo() + '''\n''' + str(datetime.now())
+        try:
+            raise RuntimeError()
+        except:
+            pass
+        # ending \ will be removed, but this happens very rare
+        \</textarea>
+		<br/><br/>
+		<button id="convert">Convert</button>
+		</div>
+		<p>
+		<h2>Rationale</h2>
+			<p>Ease pasting code in some cases (e.g paste into Python shell or through Putty). If you find yourself need this a lot you may consider using <a href="http://ipython.org/">ipython</a> with the <code>%paste</code> command, or a graphic based one like <a href="http://www.dreampie.org/">dreampie</a></p>
+			<h2>How it works</h2>
+			<p>Basically it paste your multiline code together into a triple quoted string and wraps it with <a href="http://docs.python.org/2/reference/simple_stmts.html#the-exec-statement">exec</a>. To keep the code legal the string is processed as follows:</p>
+			<ol>
+			<li><code>"""</code> in code are escaped, <code>\</code> before EOF is removed (thx @jjcat).</li>
+			<li>Reindent to 0 indent based on first line if option is selected. So you can paste indented code directly.</li>
+			<li>Wraps <code>exec</code> statement or function based on version option.</li>
+			</ol>
+			<h2>Code</h2>
+			<p><a href="http://where.com">repo</a></p>
+			<p><a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#106;&#97;&#103;&#116;&#116;&#116;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;">&#106;&#97;&#103;&#116;&#116;&#116;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;</a></p>
+		</p>
+	</div>
+</body>
+</html>
