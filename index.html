@@ -115,13 +115,12 @@ hr {
 			option = option || {};
 			var lines = code.trimRight() // keep left indent
 							.replace(/"""/g, '\\"\\"\\"') // escape """
-							.replace(/\\$/g, '') // remove trailing \
+							.replace(/\\$/, '') // remove trailing \
 							.split('\n');
 			var first_indent;
 			for (ix = 0; ix < lines.length; ++ix) {
 				if (first_indent === undefined) {
 					first_indent = lines[ix].match(/^\s*/);
-					console.log(first_indent);
 				}
 				lines[ix] = lines[ix].trimRight();
 				if (option.reindent) {
@@ -132,14 +131,28 @@ hr {
 			lines.push('"""');
 			return 'exec'+(option.is_python3 ? '(' : ' ')+lines.join('\\n')+(option.is_python3 ? ')' : '');
 		}
-		document.getElementById('convert').onclick = function(e) {
+		var do_convert = document.getElementById('convert').onclick = function(e) {
 			var option = {};
 			option.is_python3 = document.getElementById('pyver3').checked;
 			option.reindent = document.getElementById('pyreindent').checked;
 			var codearea = document.getElementById('codearea');
 			codearea.value = convert_to_single_line(codearea.value, option);
-			return false;
 		};
+		var delayed_convert = function() {
+			// to wait paste completion
+			window.setTimeout(do_convert, 5);
+		};
+
+		document.getElementById('pyauto').onclick = function(e) {
+			var checked = document.getElementById('pyauto').checked;
+			var codearea = document.getElementById('codearea');
+			if (checked) {
+				codearea.addEventListener('paste', delayed_convert, false);
+			} else {
+				codearea.removeEventListener('paste', delayed_convert);
+			}
+		}
+
 	};
 	</script>
 </head>
@@ -154,6 +167,7 @@ hr {
 		<input type="radio" name="pyver" id="pyver2" value="Python 2" checked="checked" /> Python 2
 		<input type="radio" name="pyver" id="pyver3" value="Python 3" /> Python 3
 		<input type="checkbox" name="pyreindent" id="pyreindent" checked="checked"> Reindent based on first line's indent
+		<input type="checkbox" name="pyauto" id="pyauto"> Auto convert on paste
 		<br/><br/>
 		<textarea id="codearea" cols="120" rows="30">
         # 'Reindent based on first line's indent' will reindent -8 spaces in this case
@@ -162,7 +176,8 @@ hr {
         def foo():
             """triple double quotes are escaped"""
             return '"Hey kid what time is it?"'
-        print foo() + '''\n''' + str(datetime.now())
+        print foo() + '''\n'''    \
+        	        + str(datetime.now())
         try:
             raise RuntimeError()
         except:
@@ -174,13 +189,18 @@ hr {
 		</div>
 		<p>
 		<h2>Rationale</h2>
-			<p>Ease pasting code in some cases (e.g paste into Python shell or through Putty). If you find yourself need this a lot you may consider using <a href="http://ipython.org/">ipython</a> with the <code>%paste</code> command, or a graphic based one like <a href="http://www.dreampie.org/">dreampie</a></p>
+			<p>Ease copy pasting Python code in some cases (e.g paste into Python shell or through Putty). If you find yourself need this a lot you may consider using <a href="http://ipython.org/">ipython</a> with the <code>%paste</code> command, or a graphic based one like <a href="http://www.dreampie.org/">dreampie</a></p>
 			<h2>How it works</h2>
-			<p>Basically it paste your multiline code together into a triple quoted string and wraps it with <a href="http://docs.python.org/2/reference/simple_stmts.html#the-exec-statement">exec</a>. To keep the code legal the string is processed as follows:</p>
+			<p>Basically it paste your multiline code together into a triple quoted string and wraps it around <a href="http://docs.python.org/2/reference/simple_stmts.html#the-exec-statement">exec</a>. To keep the code legit the string is processed as follows:</p>
 			<ol>
 			<li><code>"""</code> in code are escaped, <code>\</code> before EOF is removed (thx @jjcat).</li>
 			<li>Reindent to 0 indent based on first line if option is selected. So you can paste indented code directly.</li>
 			<li>Wraps <code>exec</code> statement or function based on version option.</li>
+			</ol>
+			<p>What this won't do are:</p>
+			<ol>
+			<li>Won't remove comments and docstring. Properly handling needs much more work.</li>
+			<li>Ofcourse can't check the original code is syntatically right or properly indented.</li>
 			</ol>
 			<a href="https://github.com/jagt/python-single-line-convert"><h2>Repo</h2></a>
 			<p><a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#106;&#97;&#103;&#116;&#116;&#116;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;">&#106;&#97;&#103;&#116;&#116;&#116;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;</a></p>
