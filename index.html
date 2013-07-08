@@ -96,6 +96,11 @@ hr {
     width: 70%;
 }
 </style>
+    <!--[if lt IE 9 ]>
+    <script>
+    var is_ie_lt9 = true;
+    </script>
+    <![endif]--> 
 	<script type="text/javascript">
 	// trim polyfill from somewhere on the internet
 	if(!String.prototype.trimLeft){
@@ -111,6 +116,11 @@ hr {
 	}
 	window.onload = function(){
 		function convert_to_single_line(code, option) {
+            // the lesson here is to NEVER TARGET IE WITHOUT JQUERY
+            if (window.is_ie_lt9) {
+                code = code.replace(/(\r\n|\r|\n)/g, '\n');
+            }
+
 			var ix;
 			option = option || {};
 			var lines = code.trimRight() // keep left indent
@@ -146,9 +156,17 @@ hr {
 			var checked = document.getElementById('pyauto').checked;
 			var codearea = document.getElementById('codearea');
 			if (checked) {
-				codearea.addEventListener('paste', delayed_convert, false);
+                if (window.is_ie_lt9) {
+                    codearea.attachEvent("onpaste", delayed_convert);
+                } else {
+                    codearea.addEventListener('paste', delayed_convert, false);
+                }
 			} else {
-				codearea.removeEventListener('paste', delayed_convert);
+                if (window.is_ie_lt9) {
+                    codearea.detachEvent("onpaste", delayed_convert);
+                } else {
+                    codearea.removeEventListener('paste', delayed_convert);
+                }
 			}
 		}
 
